@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <title>Order Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        nav {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        form {
+            display: none;
+            margin-top: 20px;
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        form input,
+        form textarea,
+        form select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        form input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        form #materials-provide {
+            margin-top: 10px;
+        }
+
+        form #materials-provide label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        nav {
+        background-color: #333;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .navbar-links {
+        display: flex;
+    }
+
+    .navbar-links a {
+        color: white;
+        margin-right: 10px;
+        text-decoration: none;
+    }
+
+    .logout-btn {
+        color: white;
+        cursor: pointer;
+    }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h2>Order Page</h2>
+     <div class="navbar-links">
+        <!-- Other navbar links -->
+
+        {% if user.is_authenticated %}
+            <span class="logout-btn" onclick="document.getElementById('logout-form').submit()">Logout</span>
+            <form id="logout-form" action="{% url 'credential:logout' %}" method="post" style="display: none;">
+                {% csrf_token %}
+            </form>
+        {% endif %}
+    </div>
+</nav>
+
+<div class="container">
+    <!-- Button to trigger the form -->
+    <button id="placeOrderButton">Place Order</button>
+
+    <!-- Form initially hidden -->
+    <form id="orderForm" method="post" action="{% url 'userseg:order_page' %}">
+        {% csrf_token %}
+        <!-- ... (your existing form fields) ... -->
+
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="dob">Date of Birth:</label>
+        <input type="date" id="dob" name="dob" required>
+
+        <label for="age">Age:</label>
+        <input type="text" id="age" name="age" required>
+
+        <label for="gender">Gender:</label>
+        <select id="gender" name="gender" required>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+        </select>
+
+        <label for="phone">Phone Number:</label>
+        <input type="tel" id="phone" name="phone" required>
+
+        <label for="email">Mail ID:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="address">Address:</label>
+        <textarea id="address" name="address" required></textarea>
+
+        <label for="department">Department:</label>
+        <select name="department" id="department" class="form-control">
+            <option value="0">--Select Department--</option>
+            <!-- Department options will be dynamically populated using JavaScript -->
+        </select>
+
+        <label for="course">Courses:</label>
+        <select name="course" id="course" class="form-control">
+            <option value="0">--Select Course--</option>
+            <!-- Course options will be dynamically populated using JavaScript -->
+        </select>
+
+        <label for="purpose">Purpose:</label>
+        <select id="purpose" name="purpose" required>
+            <option value="enquiry">For Enquiry</option>
+            <option value="place_order">Place Order</option>
+            <option value="return">Return</option>
+        </select>
+
+        <div id="materials-provide">
+    <label>Materials Provide:</label>
+
+    <label for="notebook">Debit Note Book</label>
+    <input type="checkbox" id="notebook" name="materials_provide" value="notebook">
+
+    <label for="pen">Pen</label>
+    <input type="checkbox" id="pen" name="materials_provide" value="pen">
+
+    <label for="exam_papers">Exam Papers</label>
+    <input type="checkbox" id="exam_papers" name="materials_provide" value="exam_papers">
+    <!-- Add more checkboxes as needed -->
+</div>
+
+        <input type="submit" value="Submit">
+    </form>
+</div>
+
+<div id="message">
+    {{ message }}
+    {% if message == "Order Confirmed" %}
+    <a href="{% url 'schoolapp:home' %}">Return to Home</a>
+
+    {% endif %}
+</div>
+
+
+
+<script>
+    $(document).ready(function () {
+    var placeOrderButton = $("#placeOrderButton");
+    var orderForm = $("#orderForm");
+
+    if (placeOrderButton.length && orderForm.length) {
+        placeOrderButton.on('click', function () {
+            orderForm.toggle();
+            placeOrderButton.hide();
+        });
+    } else {
+        console.error("Place order button or order form not found.");
+    }
+
+
+    // Fetch initial department data
+    $.ajax({
+        url: '{% url "userseg:getdata" %}',
+        type: 'GET',
+        dataType: 'json',
+        success: function (data) {
+            console.log('Department data:', data.department);
+
+            var departmentDropdown = $("#department");
+
+            // Clear existing options
+            departmentDropdown.find('option').remove();
+
+            // Populate department dropdown
+            $.each(data.department, function (index, item) {
+                console.log('Adding department:', item);
+                departmentDropdown.append($('<option>', {
+                    value: item.id,
+                    text: item.name
+                }));
+            });
+
+            // Trigger change event to populate courses for the default department
+            departmentDropdown.trigger('change');
+        },
+        error: function (error) {
+            console.error('Error fetching department data:', error);
+        }
+    });
+
+    // Event listener for department dropdown change
+    $('#department').on('change', function () {
+        var selectedDepartmentId = $(this).val();
+
+        // Fetch courses based on the selected department
+        $.ajax({
+            url: '{% url "userseg:getcourses" %}',
+            type: 'GET',
+            data: { 'department_id': selectedDepartmentId },
+            dataType: 'json',
+            success: function (data) {
+                console.log('Courses data:', data.courses);
+
+                var courseDropdown = $("#course");
+
+                // Clear existing options
+                courseDropdown.find('option').remove();
+
+                // Populate course dropdown
+                $.each(data.courses, function (index, item) {
+                    console.log('Adding course:', item);
+                    courseDropdown.append($('<option>', {
+                        value: item.id,
+                        text: item.name
+                    }));
+                });
+            },
+            error: function (xhr, status, error) {
+                console.error('AJAX Error:', status, error);
+            }
+        });
+    });
+
+    // Event listener for form submission
+    orderForm.on('submit', function (event) {
+        // Check if a department is selected
+        if ($("#department").val() === "0") {
+            // Prevent form submission and display an error message
+            event.preventDefault();
+            alert("Please select a department.");
+        }
+    });
+});
+
+
+</script>
+</body>
+</html>
